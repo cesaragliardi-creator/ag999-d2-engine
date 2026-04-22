@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<!--
+  © 2026 César Agliardi Pereira · Gravataí, RS, Brasil
+  SHA-256: 4D4A444B5EA9C854BB4915EDAF37D45CC71C5E69D3FC776DBEC22C66109DDDF1
+  PROPRIEDADE INTELECTUAL EXCLUSIVA — AG-999 D² Engine
+  InnoCentive / Wazoku · RR-SMR Robotic Inspection · May 2026
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="César Agliardi Pereira">
+<meta name="robots" content="noindex, nofollow">
+<title>SAIS v3 · SMR · Human-in-the-Loop · © César Agliardi Pereira 2026</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#06090f; --panel:#0d1117; --border:#1a2435; --border-hi:#1e3a5f;
+  --cyan:#00e5ff; --cyan-dim:rgba(0,229,255,.12); --cyan-glow:rgba(0,229,255,.35);
+  --amber:#ffb300; --amber-dim:rgba(255,179,0,.13);
+  --red:#ff3b3b; --red-dim:rgba(255,59,59,.13);
+  --green:#00e676; --green-dim:rgba(0,230,118,.1);
+  --purple:#b388ff; --purple-dim:rgba(179,136,255,.13);
+  --gold:#c9a227; --gold-dim:rgba(201,162,39,.1);
+  --text:#c8d8e8; --dim:#4a6070; --bright:#e8f4ff;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:monospace;font-size:12px;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;z-index:999;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.035) 2px,rgba(0,0,0,0.035) 4px);}
+
+/* IP BANNER */
+.ip-banner{background:rgba(201,162,39,.06);border-bottom:1px solid rgba(201,162,39,.25);
+  padding:4px 16px;display:flex;align-items:center;justify-content:space-between;font-size:9px;color:var(--gold);letter-spacing:.07em;}
+.ip-chips{display:flex;gap:6px;}
+.chip{border:1px solid rgba(201,162,39,.35);padding:1px 7px;font-size:8px;letter-spacing:.12em;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border-hi);background:rgba(0,229,255,.025);}
+.logo{font-size:20px;font-weight:900;letter-spacing:4px;color:var(--cyan);text-shadow:0 0 18px var(--cyan-glow);}
+.logo em{color:var(--dim);font-style:normal;font-weight:300;}
+.badges{display:flex;gap:6px;align-items:center;}
+.bdg{border:1px solid;padding:2px 8px;font-size:9px;letter-spacing:2px;}
+.bdg-cyan{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);}
+.bdg-purple{border-color:var(--purple);color:var(--purple);background:var(--purple-dim);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.clock{font-size:15px;color:var(--cyan);letter-spacing:2px;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* TAB NAV */
+.tabnav{display:flex;border-bottom:1px solid var(--border-hi);background:var(--panel);}
+.tab{padding:10px 18px;font-size:10px;letter-spacing:2px;cursor:pointer;border-bottom:2px solid transparent;color:var(--dim);transition:all .2s;white-space:nowrap;text-transform:uppercase;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab.active.t-purple{color:var(--purple);border-bottom-color:var(--purple);}
+.tab.active.t-gold{color:var(--gold);border-bottom-color:var(--gold);}
+.tab.active.t-amber{color:var(--amber);border-bottom-color:var(--amber);}
+.tab .tab-icon{margin-right:5px;}
+
+/* PANES */
+.pane{display:none;padding:14px;gap:12px;animation:fadeIn .2s;}
+.pane.active{display:flex;flex-direction:column;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* SECTION LABEL */
+.sec-label{font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;padding-bottom:7px;border-bottom:1px solid var(--border);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.sec-tag{font-size:8px;padding:2px 6px;border:1px solid var(--border-hi);color:var(--dim);}
+.sec-tag.cyan{border-color:rgba(0,229,255,.3);color:var(--cyan);}
+.sec-tag.purple{border-color:rgba(179,136,255,.3);color:var(--purple);}
+.sec-tag.gold{border-color:rgba(201,162,39,.3);color:var(--gold);}
+
+/* D2 DISPLAY */
+.d2-hero{background:rgba(0,229,255,.03);border:1px solid var(--border-hi);padding:20px;text-align:center;position:relative;overflow:hidden;}
+.d2-hero::before{content:'D²';position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:160px;font-weight:900;color:rgba(0,229,255,.025);pointer-events:none;}
+.d2-num{font-size:80px;font-weight:900;color:var(--cyan);line-height:1;text-shadow:0 0 28px var(--cyan-glow);transition:all .4s;}
+.d2-sub{font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:3px;}
+.d2-badge{display:inline-block;margin-top:10px;padding:4px 14px;border:1px solid var(--green);color:var(--green);background:var(--green-dim);font-size:11px;letter-spacing:2px;}
+
+/* COMPONENTS ROW */
+.comps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.comp{background:rgba(0,229,255,.03);border:1px solid var(--border);padding:10px;}
+.comp-lbl{font-size:9px;color:var(--dim);margin-bottom:4px;}
+.comp-val{font-size:20px;color:var(--bright);}
+.comp-bar{height:2px;background:var(--border);margin-top:5px;}
+.comp-fill{height:100%;transition:width .8s;}
+
+/* SENSOR GRID */
+.sensors{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;}
+.sc{border:1px solid var(--border);padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(0,229,255,.02);}
+.sc:hover,.sc.active{border-color:var(--purple);background:var(--purple-dim);}
+.sc.warn{border-color:rgba(255,179,0,.4);}
+.sc.alert{border-color:rgba(255,59,59,.45);}
+.sc-ico{font-size:18px;margin-bottom:4px;}
+.sc-lbl{font-size:8px;color:var(--dim);letter-spacing:1px;}
+.sc-val{font-size:22px;font-weight:700;color:var(--bright);}
+.sc-unit{font-size:8px;color:var(--dim);}
+.sc-bar{height:3px;background:var(--border);margin-top:7px;border-radius:2px;}
+.sc-fill{height:100%;border-radius:2px;transition:width .8s;}
+.ok-f{background:var(--green);} .warn-f{background:var(--amber);} .alert-f{background:var(--red);}
+.sc-delta{font-size:8px;margin-top:3px;}
+.up{color:var(--red);} .dn{color:var(--green);}
+.focused-result{border:1px solid var(--purple);border-left:3px solid var(--purple);background:rgba(179,136,255,.05);padding:10px;font-size:10px;line-height:1.8;display:none;}
+
+/* MAP */
+.map-wrap{position:relative;width:100%;height:260px;border:1px solid var(--border-hi);background:#080d14;overflow:hidden;}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.04) 1px,transparent 1px);background-size:22px 22px;}
+.zone{position:absolute;border:1px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:9px;cursor:pointer;transition:all .25s;}
+.zone:hover{filter:brightness(1.4);}
+.zone.ok{border-color:rgba(0,230,118,.5);background:rgba(0,230,118,.05);color:var(--green);}
+.zone.warn{border-color:rgba(255,179,0,.5);background:rgba(255,179,0,.07);color:var(--amber);}
+.zone.alert{border-color:rgba(255,59,59,.6);background:rgba(255,59,59,.08);color:var(--red);animation:za 1s infinite;}
+.zone.scanning{border-color:var(--purple)!important;background:rgba(179,136,255,.12)!important;color:var(--purple)!important;animation:zs .5s infinite!important;}
+@keyframes za{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes zs{0%,100%{opacity:1;box-shadow:inset 0 0 14px rgba(179,136,255,.3)}50%{opacity:.65;box-shadow:inset 0 0 28px rgba(179,136,255,.6)}}
+.zone-name{font-weight:bold;font-size:10px;}
+.zone-d2{font-size:8px;opacity:.85;}
+.zone-hint{font-size:7px;letter-spacing:1px;margin-top:2px;}
+.robot{position:absolute;width:13px;height:13px;background:var(--cyan);border-radius:50%;box-shadow:0 0 10px var(--cyan),0 0 20px var(--cyan-glow);transform:translate(-50%,-50%);transition:left 2.5s ease,top 2.5s ease;z-index:10;}
+.robot::after{content:'';position:absolute;inset:-4px;border:1px solid var(--cyan);border-radius:50%;opacity:.4;animation:sonar 2s infinite;}
+@keyframes sonar{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.5);opacity:0}}
+.drone2{position:absolute;width:9px;height:9px;background:var(--amber);border-radius:2px;box-shadow:0 0 9px var(--amber);transform:translate(-50%,-50%);transition:left 3.5s ease,top 3.5s ease;z-index:10;}
+
+/* ZONE BUTTONS */
+.zone-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.zbtn{padding:14px 10px;border:1px solid var(--border);background:rgba(0,229,255,.02);cursor:pointer;text-align:center;transition:all .2s;}
+.zbtn:hover{border-color:var(--purple);background:var(--purple-dim);}
+.zbtn.scanning{border-color:var(--purple);background:var(--purple-dim);animation:blink .5s infinite;}
+.zbtn-name{font-size:14px;font-weight:bold;color:var(--bright);display:block;margin-bottom:4px;}
+.zbtn-d2{font-size:10px;}
+.zbtn-hint{font-size:9px;color:var(--purple);margin-top:4px;letter-spacing:1px;}
+.scan-result{border:1px solid var(--border);border-left:3px solid var(--purple);background:rgba(179,136,255,.04);padding:10px;font-size:10px;line-height:1.8;min-height:44px;}
+
+/* MEASURE */
+.measure-row{display:flex;gap:8px;align-items:center;}
+.sel{flex:1;background:#070c12;border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:monospace;font-size:11px;outline:none;}
+.sel:focus{border-color:var(--purple);}
+.btn{padding:8px 16px;background:transparent;border:1px solid;font-family:monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .2s;}
+.btn-c{border-color:var(--cyan);color:var(--cyan);}
+.btn-c:hover{background:var(--cyan-dim);}
+.btn-p{border-color:var(--purple);color:var(--purple);}
+.btn-p:hover{background:var(--purple-dim);}
+.btn-g{border-color:var(--green);color:var(--green);}
+.btn-g:hover{background:var(--green-dim);}
+.btn-a{border-color:var(--amber);color:var(--amber);}
+.btn-a:hover{background:var(--amber-dim);}
+.mresult{border:1px solid var(--border);border-left:3px solid var(--purple);background:rgba(179,136,255,.04);padding:12px;font-size:10px;line-height:1.9;min-height:52px;}
+
+/* OPERATOR NOTES */
+.notearea{width:100%;background:#070c12;border:1px solid var(--border);color:var(--bright);font-family:monospace;font-size:11px;padding:10px;resize:vertical;min-height:80px;outline:none;line-height:1.6;}
+.notearea:focus{border-color:var(--purple);}
+.note-controls{display:flex;gap:8px;margin-top:8px;align-items:center;}
+.note-sel{flex:1;background:#070c12;border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:monospace;font-size:10px;outline:none;}
+.note-sel:focus{border-color:var(--purple);}
+.notes-feed{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;}
+.note-card{background:#070c12;border:1px solid var(--border);border-left:3px solid var(--purple);padding:10px;}
+.note-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.note-meta{font-size:9px;color:var(--dim);}
+.note-typ{font-size:8px;padding:2px 7px;border:1px solid;border-radius:2px;letter-spacing:1px;}
+.note-body{font-size:11px;color:var(--bright);line-height:1.5;}
+.note-footer{margin-top:5px;font-size:9px;color:var(--purple);}
+
+/* BASELINE */
+.baseline-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);}
+.bcol{background:var(--panel);padding:12px;}
+.bcol-title{font-size:9px;letter-spacing:2px;padding-bottom:7px;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.brow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(26,36,53,.5);}
+.brow-lbl{font-size:9px;color:var(--dim);}
+.brow-val{font-size:11px;}
+.ref-c{color:var(--dim);}
+.now-ok{color:var(--green);} .now-warn{color:var(--amber);} .now-crit{color:var(--red);}
+.delta-section{border:1px solid var(--border);background:#070c12;padding:12px;}
+.delta-row{display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid rgba(26,36,53,.4);}
+.d-lbl{font-size:9px;color:var(--dim);min-width:80px;}
+.d-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;position:relative;overflow:hidden;}
+.d-bar-fill{height:100%;border-radius:3px;position:absolute;left:0;transition:width .8s;}
+.d-val{font-size:10px;min-width:52px;text-align:right;}
+.baseline-actions{display:flex;gap:8px;margin-top:10px;align-items:center;}
+.baseline-ts{flex:1;font-size:9px;color:var(--dim);border:1px solid var(--border);padding:6px 10px;background:#070c12;}
+
+/* FORMULA */
+.fbox{border:1px solid var(--border-hi);padding:12px;margin-bottom:8px;border-left:3px solid var(--cyan);position:relative;background:rgba(0,229,255,.02);}
+.fbox.gold{border-left-color:var(--gold);background:rgba(201,162,39,.02);}
+.fbox.gold::after{content:'🔒 PROTECTED';position:absolute;top:6px;right:8px;font-size:7px;color:rgba(201,162,39,.45);letter-spacing:2px;}
+.fname{font-size:9px;color:var(--cyan);margin-bottom:5px;letter-spacing:2px;}
+.fname.gold{color:var(--gold);}
+.feq{font-size:11px;color:var(--bright);line-height:1.7;}
+.fdesc{font-size:10px;color:var(--dim);margin-top:5px;line-height:1.5;}
+.blur{display:inline-block;filter:blur(4px);background:rgba(201,162,39,.07);padding:0 3px;user-select:none;cursor:not-allowed;}
+.blur:hover{filter:blur(6px);}
+
+/* CHARTS */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cbox{background:#070c12;border:1px solid var(--border);padding:10px;}
+.ctitle{font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:7px;}
+.cbox canvas{max-height:110px;}
+
+/* GAUGE */
+.gauge-row{display:flex;gap:10px;}
+.gcv{flex:0 0 160px;background:#070c12;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;padding:8px;}
+.ginfo{flex:1;display:flex;flex-direction:column;gap:8px;}
+.greading{background:#070c12;border:1px solid var(--border);padding:10px;}
+.gval{font-size:32px;font-weight:700;color:var(--green);}
+.glog{background:#070c12;border:1px solid var(--border);padding:8px;flex:1;font-size:9px;color:var(--dim);}
+.gl{padding:1px 0;line-height:1.6;}
+.gl .ts{color:var(--cyan);margin-right:6px;}
+
+/* INSPECTION LOG */
+.ilog{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto;}
+.entry{display:flex;gap:8px;padding:6px 8px;border-left:2px solid var(--border);background:#070c12;}
+.entry.ok{border-left-color:var(--green);}
+.entry.warn{border-left-color:var(--amber);}
+.entry.crit{border-left-color:var(--red);}
+.entry.info{border-left-color:var(--cyan);}
+.entry.human{border-left-color:var(--purple);}
+.etime{color:var(--dim);font-size:9px;white-space:nowrap;}
+.emsg{font-size:10px;color:var(--text);line-height:1.4;}
+
+/* REPORT */
+.rout{background:#070c12;border:1px solid var(--border);padding:12px;font-size:10px;color:var(--dim);line-height:1.9;display:none;max-height:300px;overflow-y:auto;}
+.rout.vis{display:block;}
+.rk{color:var(--cyan);} .rok{color:var(--green);} .rwarn{color:var(--amber);} .rcrit{color:var(--red);} .rip{color:var(--gold);} .rhuman{color:var(--purple);}
+
+/* BLOCH */
+.bloch-row{display:flex;gap:12px;align-items:flex-start;}
+.qvars{display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1;}
+.qv{background:#070c12;border:1px solid var(--border);padding:10px;text-align:center;}
+.qv-l{font-size:9px;color:var(--dim);}
+.qv-v{font-size:18px;color:var(--cyan);}
+
+/* ROUTE */
+.route-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+.rs{background:#070c12;border:1px solid var(--border);padding:10px;text-align:center;}
+.rs-l{font-size:9px;color:var(--dim);margin-bottom:4px;}
+.rs-v{font-size:20px;font-weight:700;}
+
+/* PARTNER CARDS */
+.partner-card{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .2s;background:transparent;}
+.partner-card:hover{background:rgba(0,229,255,.04);}
+.partner-card:last-child{border-bottom:none;}
+.pc-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.pc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pc-name{font-size:11px;font-weight:700;color:var(--bright);}
+.pc-loc{font-size:9px;color:var(--dim);}
+.pc-badge{font-size:7px;padding:2px 6px;border:1px solid;letter-spacing:1px;margin-left:auto;white-space:nowrap;}
+.pc-robot{font-size:13px;font-weight:700;margin-bottom:3px;letter-spacing:1px;color:var(--text);}
+.pc-desc{font-size:9px;color:var(--dim);line-height:1.5;}
+/* Leaflet dark override */
+#partnersMap .leaflet-tile{filter:brightness(.45) saturate(.5) hue-rotate(180deg);}
+#partnersMap .leaflet-control-attribution{background:rgba(0,0,0,.5)!important;color:#3a5070!important;font-size:8px;}
+#partnersMap .leaflet-control-zoom a{background:#0d1117!important;color:var(--cyan)!important;border-color:var(--border)!important;}
+background:var(--panel);border-top:1px solid var(--border-hi);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;font-size:9px;color:var(--dim);}
+.bb-left{display:flex;gap:20px;}
+.bb-k{color:var(--cyan);}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:var(--border-hi);}
+</style>
+</head>
+<body>
+
+<!-- IP BANNER -->
+<div class="ip-banner">
+  <div>🔒 &nbsp; © 2026 César Agliardi Pereira · Gravataí, RS, Brasil · Propriedade Intelectual Exclusiva &nbsp;·&nbsp; SHA-256: 4D4A444B5EA9C854BB4915EDAF37D45CC71C5E69D3FC776DBEC22C66109DDDF1</div>
+  <div class="ip-chips"><span class="chip">AG-999 ENGINE</span><span class="chip">NOINDEX</span><span class="chip">v3 HITL</span></div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">SAIS <em>·</em> v3</div>
+    <div class="badges">
+      <div class="bdg bdg-cyan">SMR EDITION</div>
+      <div class="bdg bdg-purple">⬡ HUMAN-IN-THE-LOOP</div>
+    </div>
+  </div>
+  <div style="text-align:center">
+    <div style="font-size:13px;font-weight:700;letter-spacing:3px;color:var(--bright)">ROLLS-ROYCE SMR · MEP INSPECTION</div>
+    <div style="font-size:10px;color:var(--dim)">AG-999 D² Engine · © César Agliardi Pereira 2026</div>
+  </div>
+  <div class="topbar-right">
+    <div style="display:flex;align-items:center;gap:6px"><div class="live-dot"></div><span style="color:var(--green);font-size:10px">ACTIVE</span></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<div class="tabnav">
+  <div class="tab active" onclick="showTab('dashboard')"><span class="tab-icon">📊</span>Dashboard</div>
+  <div class="tab t-purple" onclick="showTab('request')"><span class="tab-icon">🎯</span>1 · Request Inspection</div>
+  <div class="tab t-purple" onclick="showTab('measure')"><span class="tab-icon">📡</span>2 · Measure Parameter</div>
+  <div class="tab t-purple" onclick="showTab('notes')"><span class="tab-icon">📝</span>3 · Operator Notes</div>
+  <div class="tab t-amber" onclick="showTab('baseline')"><span class="tab-icon">📈</span>4 · Baseline vs. Current</div>
+  <div class="tab t-gold" onclick="showTab('formulas')"><span class="tab-icon">🔒</span>AG-999 Formulas</div>
+  <div class="tab" onclick="showTab('report')"><span class="tab-icon">📄</span>Report</div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 1: DASHBOARD -->
+<!-- ════════════════════════════════════════════ -->
+<div class="pane active" id="pane-dashboard">
+
+  <!-- D2 + COMPONENTS -->
+  <div class="d2-hero">
+    <div class="d2-sub">ANOMALY INDEX · AG-999 D² ENGINE</div>
+    <div class="d2-num" id="d2main">0.61</div>
+    <div class="d2-sub" style="margin-top:4px">D² = Σᵢ Cᵢ·Tr(TᵢTᵢ) + β·z(θ) + γ·cos(φ) — fused via 𝒪(□)</div>
+    <div class="d2-badge" id="d2status">⬤ WARNING — ZONE MEP-B</div>
+  </div>
+
+  <div class="comps">
+    <div class="comp"><div class="comp-lbl">Σᵢ Cᵢ·Tr(TᵢTᵢ)</div><div class="comp-val" id="c1v">0.38</div><div class="comp-bar"><div class="comp-fill" id="c1b" style="width:38%;background:var(--cyan)"></div></div></div>
+    <div class="comp"><div class="comp-lbl">β·z(θ) structural</div><div class="comp-val" id="c2v">0.15</div><div class="comp-bar"><div class="comp-fill" id="c2b" style="width:15%;background:var(--amber)"></div></div></div>
+    <div class="comp"><div class="comp-lbl">γ·cos(φ) temporal</div><div class="comp-val" id="c3v">0.08</div><div class="comp-bar"><div class="comp-fill" id="c3b" style="width:8%;background:var(--green)"></div></div></div>
+    <div class="comp"><div class="comp-lbl">𝒪(□) fused output</div><div class="comp-val" id="c4v">0.61</div><div class="comp-bar"><div class="comp-fill" id="c4b" style="width:61%;background:var(--amber)"></div></div></div>
+  </div>
+
+  <!-- SENSORS -->
+  <div>
+    <div class="sec-label">Multi-Modal Sensor Fusion — 6 Channels <span class="sec-tag cyan">REAL-TIME</span></div>
+    <div class="sensors">
+      <div class="sc" id="sc-thermal" onclick="goMeasure('thermal|Thermal Sensor · All Zones|MEP-A')"><div class="sc-ico">🌡</div><div class="sc-lbl">THERMAL</div><div class="sc-val" id="sv-temp">284</div><div class="sc-unit">°C</div><div class="sc-bar"><div class="sc-fill ok-f" id="sb-temp" style="width:58%"></div></div><div class="sc-delta dn">▼ −2.1°</div></div>
+      <div class="sc warn" onclick="goMeasure('vibration|Pump P-08|MEP-B')"><div class="sc-ico">📳</div><div class="sc-lbl">VIBRATION</div><div class="sc-val" id="sv-vib">14.7</div><div class="sc-unit">mm/s</div><div class="sc-bar"><div class="sc-fill warn-f" id="sb-vib" style="width:68%"></div></div><div class="sc-delta up">▲ +3.2</div></div>
+      <div class="sc" onclick="goMeasure('acoustic|Valve VB-04|MEP-A')"><div class="sc-ico">🔊</div><div class="sc-lbl">ACOUSTIC</div><div class="sc-val" id="sv-acou">62</div><div class="sc-unit">dB(A)</div><div class="sc-bar"><div class="sc-fill ok-f" id="sb-acou" style="width:42%"></div></div><div class="sc-delta dn">▼ −0.8</div></div>
+      <div class="sc alert" onclick="goMeasure('thermal|Steam Line SL-07|MEP-C')"><div class="sc-ico">💨</div><div class="sc-lbl">STEAM</div><div class="sc-val">HIGH</div><div class="sc-unit">Δ-thermal</div><div class="sc-bar"><div class="sc-fill alert-f" id="sb-steam" style="width:84%"></div></div><div class="sc-delta up">▲ ALERT</div></div>
+      <div class="sc" onclick="goMeasure('bolt|Flange FL-22|MEP-B')"><div class="sc-ico">🔩</div><div class="sc-lbl">BOLT</div><div class="sc-val">98.4</div><div class="sc-unit">% nom.</div><div class="sc-bar"><div class="sc-fill ok-f" style="width:98%"></div></div><div class="sc-delta dn">▼ −0.2%</div></div>
+      <div class="sc" onclick="goMeasure('corrosion|Pipe Rack PR-09|AUX-D')"><div class="sc-ico">🔬</div><div class="sc-lbl">CORROSION</div><div class="sc-val">Gr.1</div><div class="sc-unit">ISO 8501</div><div class="sc-bar"><div class="sc-fill ok-f" style="width:20%"></div></div><div class="sc-delta dn">— STABLE</div></div>
+    </div>
+    <div style="font-size:9px;color:var(--purple);margin-top:6px">⬡ Click any sensor card to jump to targeted measurement →</div>
+  </div>
+
+  <!-- ── TREND ANALYSIS 24HR ── -->
+  <div>
+    <div class="sec-label">Trend Analysis — 24 HR <span class="sec-tag cyan">LIVE</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+      <div class="cbox">
+        <div class="ctitle">📊 HISTÓRIA DO D² — TODAS AS ZONAS</div>
+        <canvas id="chartD2" style="max-height:130px"></canvas>
+        <div style="display:flex;gap:10px;margin-top:5px;font-size:8px">
+          <span style="color:rgba(0,230,118,.7)">■ MEP-A</span>
+          <span style="color:rgba(255,179,0,.7)">■ MEP-B</span>
+          <span style="color:rgba(255,59,59,.8)">■ MEP-C</span>
+        </div>
+      </div>
+      <div class="cbox">
+        <div class="ctitle">🌡 PERFIL TÉRMICO</div>
+        <canvas id="chartTemp" style="max-height:130px"></canvas>
+      </div>
+      <div class="cbox">
+        <div class="ctitle">📳 TENDÊNCIA DE VIBRAÇÃO</div>
+        <canvas id="chartVib" style="max-height:130px"></canvas>
+      </div>
+      <div class="cbox">
+        <div class="ctitle">📡 COBERTURA DE INSPEÇÃO %</div>
+        <canvas id="chartCov" style="max-height:130px"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GAUGE READER + QUANTUM OBSERVER ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+
+    <!-- GAUGE READER -->
+    <div style="background:rgba(0,229,255,.02);border:1px solid var(--border-hi);padding:14px">
+      <div class="sec-label" style="margin-bottom:12px">Leitor de Medidores IA — Módulo de Visão <span class="sec-tag cyan">AUTO CV</span></div>
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="flex:0 0 170px;background:#070c12;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;padding:10px">
+          <canvas id="gaugeCanvas" width="160" height="160"></canvas>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <div style="background:#070c12;border:1px solid var(--border);padding:12px">
+            <div style="font-size:9px;color:var(--dim);margin-bottom:4px">LEITURA CV · MANÔMETRO P-04</div>
+            <div style="font-size:42px;font-weight:900;color:var(--green);line-height:1" id="gaugeVal">7.2</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:3px">bar · Altura: 1102mm · DENTRO DO SPEC</div>
+          </div>
+          <div style="background:#070c12;border:1px solid var(--border);padding:10px;font-size:10px;color:var(--dim);line-height:1.8">
+            <div><span style="color:var(--cyan)">T+00:12</span> &nbsp; Bitola P-04 localizada em 1102mm</div>
+            <div><span style="color:var(--cyan)">T+00:14</span> &nbsp; Detecção de borda: <span style="color:var(--green)">PASS</span></div>
+            <div><span style="color:var(--cyan)">T+00:15</span> &nbsp; Calibração de escala: 0–16 bar</div>
+            <div><span style="color:var(--cyan)">T+00:17</span> &nbsp; Ângulo da agulha: 162.3°</div>
+            <div><span style="color:var(--cyan)">T+00:18</span> &nbsp; Leitura: <span style="color:var(--green)">7.2 bar ✓</span></div>
+            <div><span style="color:var(--cyan)">T+00:20</span> &nbsp; Delta de base: <span style="color:var(--green)">+0.1 bar</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUANTUM STATE OBSERVER -->
+    <div style="background:rgba(0,229,255,.02);border:1px solid var(--border-hi);padding:14px">
+      <div class="sec-label" style="margin-bottom:12px">Observador Quântico de Estado |Ψ⟩ <span class="sec-tag cyan">AG-999 ENGINE</span></div>
+      <div style="display:flex;gap:16px;align-items:center">
+        <!-- Big Bloch sphere -->
+        <div style="flex:0 0 200px">
+          <svg width="200" height="200" viewBox="0 0 180 180">
+            <!-- Outer glow ring -->
+            <ellipse cx="90" cy="90" rx="78" ry="78" fill="none" stroke="rgba(0,229,255,.06)" stroke-width="14"/>
+            <!-- Main sphere -->
+            <ellipse cx="90" cy="90" rx="72" ry="72" fill="rgba(0,229,255,.03)" stroke="rgba(0,229,255,.15)" stroke-width="1"/>
+            <!-- Equator -->
+            <ellipse cx="90" cy="90" rx="72" ry="28" fill="none" stroke="rgba(0,229,255,.1)" stroke-width="1" stroke-dasharray="4,4"/>
+            <!-- Meridian -->
+            <ellipse cx="90" cy="90" rx="28" ry="72" fill="none" stroke="rgba(0,229,255,.07)" stroke-width="1" stroke-dasharray="4,4"/>
+            <!-- Axes -->
+            <line x1="90" y1="10" x2="90" y2="170" stroke="rgba(0,229,255,.2)" stroke-width="1"/>
+            <line x1="10" y1="90" x2="170" y2="90" stroke="rgba(0,229,255,.2)" stroke-width="1"/>
+            <!-- Axis labels -->
+            <text x="90" y="6" fill="rgba(0,229,255,.7)" font-family="monospace" font-size="10" text-anchor="middle">|+1⟩</text>
+            <text x="90" y="178" fill="rgba(0,229,255,.7)" font-family="monospace" font-size="10" text-anchor="middle">|−1⟩</text>
+            <text x="158" y="94" fill="rgba(0,229,255,.7)" font-family="monospace" font-size="10">|0⟩</text>
+            <!-- Probability shells -->
+            <circle cx="90" cy="90" r="40" fill="none" stroke="rgba(0,229,255,.04)" stroke-width="12"/>
+            <!-- State vector shadow -->
+            <line x1="90" y1="90" id="vecShadow" x2="90" y2="25" stroke="rgba(0,229,255,.15)" stroke-width="6" stroke-linecap="round"/>
+            <!-- State vector -->
+            <line x1="90" y1="90" id="vecLine" x2="90" y2="25" stroke="var(--cyan)" stroke-width="2.5" opacity=".9"/>
+            <!-- Tip glow -->
+            <circle id="vecTip" cx="90" cy="25" r="7" fill="none" stroke="var(--cyan)" stroke-width="1" opacity=".4"/>
+            <circle id="vecTip2" cx="90" cy="25" r="4" fill="var(--cyan)" filter="url(#glow2)"/>
+            <defs>
+              <filter id="glow2">
+                <feGaussianBlur stdDeviation="3" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+          </svg>
+        </div>
+        <!-- Variables -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <div style="background:#070c12;border:1px solid var(--border);padding:12px">
+            <div style="font-size:9px;color:var(--dim);margin-bottom:6px;letter-spacing:2px">θ (ângulo polar)</div>
+            <div style="font-size:36px;font-weight:900;color:var(--cyan);line-height:1" id="qtheta">0.84</div>
+            <div style="font-size:9px;color:var(--dim);margin-top:3px">rad · inclinação do vetor de estado</div>
+          </div>
+          <div style="background:#070c12;border:1px solid var(--border);padding:12px">
+            <div style="font-size:9px;color:var(--dim);margin-bottom:6px;letter-spacing:2px">φ (azimute)</div>
+            <div style="font-size:36px;font-weight:900;color:var(--cyan);line-height:1" id="qphi">2.31</div>
+            <div style="font-size:9px;color:var(--dim);margin-top:3px">rad · rotação na esfera de Bloch</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div style="background:#070c12;border:1px solid rgba(255,179,0,.3);padding:10px;text-align:center">
+              <div style="font-size:9px;color:var(--dim);margin-bottom:4px">z(θ) observável</div>
+              <div style="font-size:28px;font-weight:700;color:var(--amber)" id="qz">0.44</div>
+              <div style="font-size:8px;color:var(--dim)">integridade estrutural</div>
+            </div>
+            <div style="background:#070c12;border:1px solid rgba(0,230,118,.2);padding:10px;text-align:center">
+              <div style="font-size:9px;color:var(--dim);margin-bottom:4px">Fase cos(φ)</div>
+              <div style="font-size:28px;font-weight:700;color:var(--green)" id="qcos">−0.67</div>
+              <div style="font-size:8px;color:var(--dim)">componente temporal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- INSPECTION LOG + ROUTE -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div>
+      <div class="sec-label">Inspection Log <span class="sec-tag" id="logCount">9 EVENTS</span></div>
+      <div class="ilog" id="inspLog">
+        <div class="entry human"><span class="etime">07:14</span><span class="emsg" style="color:var(--purple)">⬡ OPERATOR NOTE: Oil smell near P-08 not in sensors</span></div>
+        <div class="entry crit"><span class="etime">09:41</span><span class="emsg" style="color:var(--red)">ALERT: Steam anomaly — Zone MEP-C</span></div>
+        <div class="entry warn"><span class="etime">09:40</span><span class="emsg" style="color:var(--amber)">WARN: Vibration 14.7 mm/s — Pump P-08</span></div>
+        <div class="entry info"><span class="etime">09:38</span><span class="emsg">Gauge P-04: 7.2 bar — OK</span></div>
+        <div class="entry ok"><span class="etime">09:37</span><span class="emsg">MEP-A route complete — 47 wpts ✓</span></div>
+        <div class="entry ok"><span class="etime">09:35</span><span class="emsg">Drone AUX-D: corrosion Gr.1 — STABLE</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-label">Route Execution · ALPHA <span class="sec-tag cyan">68%</span></div>
+      <div style="height:6px;background:var(--border);border-radius:3px;margin-bottom:8px">
+        <div id="routeBar" style="height:100%;width:68%;background:var(--cyan);border-radius:3px;box-shadow:0 0 8px var(--cyan-glow);transition:width 1s"></div>
+      </div>
+      <div class="route-stats">
+        <div class="rs"><div class="rs-l">Waypoints</div><div class="rs-v" id="wpct" style="color:var(--bright)">94/138</div></div>
+        <div class="rs"><div class="rs-l">Gauges</div><div class="rs-v" style="color:var(--green)">11/16</div></div>
+        <div class="rs"><div class="rs-l">Anomalies</div><div class="rs-v" style="color:var(--red)">2</div></div>
+        <div class="rs"><div class="rs-l">Op. Notes</div><div class="rs-v" style="color:var(--purple)" id="noteCountDash">1</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HARDWARE PARTNERS MAP ── -->
+  <div style="border:1px solid var(--border-hi);background:rgba(0,229,255,.02)">
+    <div class="sec-label" style="padding:12px 14px;margin-bottom:0;border-bottom:1px solid var(--border)">
+      Plataformas de Hardware — Parceiros Potenciais SAIS
+      <span class="sec-tag cyan">AG-999 HARDWARE-AGNOSTIC</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:0">
+      <!-- MAP -->
+      <div id="partnersMap" style="height:320px;background:#080d14;position:relative;z-index:1"></div>
+      <!-- CARDS -->
+      <div style="border-left:1px solid var(--border);display:flex;flex-direction:column">
+        <div class="partner-card" id="pc-bd" onclick="flyTo(42.4178,-71.2547,14,'bd')" style="border-left:3px solid var(--cyan)">
+          <div class="pc-top">
+            <div class="pc-dot" style="background:var(--cyan)"></div>
+            <div>
+              <div class="pc-name">Boston Dynamics</div>
+              <div class="pc-loc">📍 Waltham, MA — EUA</div>
+            </div>
+            <div class="pc-badge" style="border-color:var(--cyan);color:var(--cyan)">QUADRÚPEDE</div>
+          </div>
+          <div class="pc-robot">🤖 Spot</div>
+          <div class="pc-desc">Plataforma mais adotada industrialmente. APIs ROS2 abertas. Integração com AG-999 em 6–8 meses.</div>
+        </div>
+        <div class="partner-card" id="pc-fly" onclick="flyTo(46.5063,6.6705,14,'fly')" style="border-left:3px solid var(--purple)">
+          <div class="pc-top">
+            <div class="pc-dot" style="background:var(--purple)"></div>
+            <div>
+              <div class="pc-name">Flyability</div>
+              <div class="pc-loc">📍 Paudex — Suíça</div>
+            </div>
+            <div class="pc-badge" style="border-color:var(--purple);color:var(--purple)">DRONE INDOOR</div>
+          </div>
+          <div class="pc-robot">🚁 Elios 3</div>
+          <div class="pc-desc">Drone indoor para espaços confinados. Já usado em inspeções nucleares na Europa. Corredor 1400mm ✓</div>
+        </div>
+        <div class="partner-card" id="pc-any" onclick="flyTo(47.4153,8.5594,14,'any')" style="border-left:3px solid var(--amber)">
+          <div class="pc-top">
+            <div class="pc-dot" style="background:var(--amber)"></div>
+            <div>
+              <div class="pc-name">ANYbotics</div>
+              <div class="pc-loc">📍 Zurique — Suíça</div>
+            </div>
+            <div class="pc-badge" style="border-color:var(--amber);color:var(--amber)">INDUSTRIAL</div>
+          </div>
+          <div class="pc-robot">🤖 ANYmal C</div>
+          <div class="pc-desc">IP67 · Certificado hazardous zones · Histórico em plantas de energia. <strong style="color:var(--amber)">Opção principal RR-SMR.</strong></div>
+        </div>
+        <div class="partner-card" id="pc-exyn" onclick="flyTo(39.9392,-75.1797,14,'exyn')" style="border-left:3px solid var(--green)">
+          <div class="pc-top">
+            <div class="pc-dot" style="background:var(--green)"></div>
+            <div>
+              <div class="pc-name">Exyn Technologies</div>
+              <div class="pc-loc">📍 Philadelphia, PA — EUA</div>
+            </div>
+            <div class="pc-badge" style="border-color:var(--green);color:var(--green)">GPS-DENIED</div>
+          </div>
+          <div class="pc-robot">🚁 ExynAero</div>
+          <div class="pc-desc">SLAM autônomo sem GPS — essencial no interior metálico dos módulos SMR onde GPS não funciona.</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:8px 14px;border-top:1px solid var(--border);font-size:9px;color:var(--dim)">
+      ⬡ SAIS é hardware-agnóstico — o AG-999 Engine opera como camada de inteligência em cima de qualquer plataforma acima. &nbsp;·&nbsp; Clique nos cards para zoom no mapa.
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 2: REQUEST ZONE INSPECTION -->
+<!-- ════════════════════════════════════════════ -->
+<div class="pane" id="pane-request">
+  <div class="sec-label">1 · Request Zone Inspection — Human-Triggered Re-Scan <span class="sec-tag purple">HITL OVERRIDE</span></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <!-- MAP + buttons -->
+    <div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:8px">Click a zone on the map <em>or</em> press the buttons below to trigger a targeted re-scan. The robot reroutes, collects fresh data, and the D² is recalculated.</div>
+      <div class="map-wrap">
+        <div class="map-grid"></div>
+        <div class="zone ok" id="mz1" style="left:5%;top:5%;width:42%;height:44%" onclick="doScan('MEP-A','mz1','zbtn-A')">
+          <div class="zone-name">MEP-A</div><div class="zone-d2" id="mz1d2">D²=0.18</div><div class="zone-hint">▶ CLICK TO SCAN</div>
+        </div>
+        <div class="zone warn" id="mz2" style="left:53%;top:5%;width:42%;height:44%" onclick="doScan('MEP-B','mz2','zbtn-B')">
+          <div class="zone-name">MEP-B</div><div class="zone-d2" id="mz2d2">D²=0.61</div><div class="zone-hint">▶ CLICK TO SCAN</div>
+        </div>
+        <div class="zone alert" id="mz3" style="left:5%;top:55%;width:42%;height:40%" onclick="doScan('MEP-C','mz3','zbtn-C')">
+          <div class="zone-name">MEP-C</div><div class="zone-d2" id="mz3d2">D²=0.88</div><div class="zone-hint">▶ CLICK TO SCAN</div>
+        </div>
+        <div class="zone ok" id="mz4" style="left:53%;top:55%;width:42%;height:40%" onclick="doScan('AUX-D','mz4','zbtn-D')">
+          <div class="zone-name">AUX-D</div><div class="zone-d2" id="mz4d2">D²=0.09</div><div class="zone-hint">▶ CLICK TO SCAN</div>
+        </div>
+        <div class="robot" id="robot2" style="left:25%;top:25%"></div>
+        <div class="drone2" id="drone2" style="left:72%;top:72%"></div>
+      </div>
+    </div>
+
+    <!-- Zone buttons + result -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="zone-btns">
+        <button class="zbtn" id="zbtn-A" onclick="doScan('MEP-A','mz1','zbtn-A')">
+          <span class="zbtn-name">MEP-A</span>
+          <span class="zbtn-d2 dn" id="zd-A">D² = 0.18 · NORMAL</span>
+          <span class="zbtn-hint">▶ REQUEST INSPECTION</span>
+        </button>
+        <button class="zbtn" id="zbtn-B" onclick="doScan('MEP-B','mz2','zbtn-B')">
+          <span class="zbtn-name">MEP-B</span>
+          <span class="zbtn-d2 up" id="zd-B">D² = 0.61 · WARNING</span>
+          <span class="zbtn-hint">▶ REQUEST INSPECTION</span>
+        </button>
+        <button class="zbtn" id="zbtn-C" onclick="doScan('MEP-C','mz3','zbtn-C')">
+          <span class="zbtn-name">MEP-C</span>
+          <span class="zbtn-d2 up" id="zd-C">D² = 0.88 · ALERT</span>
+          <span class="zbtn-hint">▶ REQUEST INSPECTION</span>
+        </button>
+        <button class="zbtn" id="zbtn-D" onclick="doScan('AUX-D','mz4','zbtn-D')">
+          <span class="zbtn-name">AUX-D</span>
+          <span class="zbtn-d2 dn" id="zd-D">D² = 0.09 · NORMAL</span>
+          <span class="zbtn-hint">▶ REQUEST INSPECTION</span>
+        </button>
+      </div>
+      <div class="scan-result" id="scanResult">
+        No re-scan requested yet.<br>
+        <span style="color:var(--dim)">The system runs autonomously — use this panel to trigger targeted inspection of a specific zone at any time. D² will be recalculated and the event logged.</span>
+      </div>
+      <div style="border:1px solid var(--border);background:#070c12;padding:10px;font-size:9px;color:var(--dim);line-height:1.8">
+        <span style="color:var(--purple)">⬡ How this works:</span><br>
+        Trigger → Robot reroutes to zone → Fresh multi-modal scan → D² recalculated via AG-999 engine → Result logged with operator ID and timestamp → Report updated automatically.
+        <br><span style="color:var(--cyan)">No manual threshold required.</span> The D² engine judges the re-scan autonomously.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 3: MEASURE SPECIFIC PARAMETER -->
+<!-- ════════════════════════════════════════════ -->
+<div class="pane" id="pane-measure">
+  <div class="sec-label">2 · Measure Specific Parameter — Targeted Single-Point Inspection <span class="sec-tag purple">HITL</span></div>
+
+  <div style="font-size:10px;color:var(--dim);margin-bottom:10px">
+    Select any equipment and parameter. The system dispatches a targeted measurement — not a full route — and integrates the result into the D² calculation via 𝒪(□) fusion. No thresholds to configure manually.
+  </div>
+
+  <div class="measure-row">
+    <select class="sel" id="measureSel">
+      <option value="">— select equipment and parameter —</option>
+      <option value="vibration|Pump P-08|MEP-B|8.1 mm/s">📳 Vibration — Pump P-08 (MEP-B)</option>
+      <option value="vibration|Pump P-12|MEP-A|7.4 mm/s">📳 Vibration — Pump P-12 (MEP-A)</option>
+      <option value="thermal|Heat Exchanger HX-03|MEP-C|268°C">🌡 Thermal — HX-03 (MEP-C)</option>
+      <option value="thermal|Steam Line SL-07|MEP-C|290°C">💨 Thermal — Steam Line SL-07 (MEP-C)</option>
+      <option value="bolt|Flange FL-22|MEP-B|99.1%">🔩 Bolt Tension — Flange FL-22 (MEP-B)</option>
+      <option value="bolt|Flange FL-08|MEP-A|98.8%">🔩 Bolt Tension — Flange FL-08 (MEP-A)</option>
+      <option value="acoustic|Valve VB-04|MEP-A|58 dB">🔊 Acoustic — Valve VB-04 (MEP-A)</option>
+      <option value="pressure|Gauge P-04|MEP-A|7.1 bar">⬡ Pressure — Gauge P-04 (MEP-A)</option>
+      <option value="corrosion|Pipe Rack PR-09|AUX-D|Gr.0">🔬 Corrosion — Pipe Rack PR-09 (AUX-D)</option>
+    </select>
+    <button class="btn btn-p" onclick="runMeasure()">▶ DISPATCH MEASUREMENT</button>
+  </div>
+
+  <div class="mresult" id="measureOut">
+    Select a parameter above and press DISPATCH.<br>
+    <span style="color:var(--dim)">The robot will navigate to the equipment, collect data, and compare against the first-entry baseline.</span>
+  </div>
+
+  <!-- History -->
+  <div class="sec-label" style="margin-top:4px">Measurement History <span class="sec-tag" id="mhistCount">0 RECORDS</span></div>
+  <div class="ilog" id="measureHistory" style="max-height:200px">
+    <div style="font-size:10px;color:var(--dim);padding:8px">No targeted measurements yet.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 4: OPERATOR NOTES -->
+<!-- ════════════════════════════════════════════ -->
+<div class="pane" id="pane-notes">
+  <div class="sec-label">3 · Operator Notes — Human Context Integration <span class="sec-tag purple">HITL</span></div>
+
+  <div style="font-size:10px;color:var(--dim);margin-bottom:10px">
+    Operators can log contextual observations that sensors cannot capture — unusual smells, sounds, visual cues during manual walkdowns. Each note is timestamped and associated with the current D² snapshot, becoming part of the inspection record.
+  </div>
+
+  <textarea class="notearea" id="noteInput" placeholder="e.g. Unusual grinding noise near valve VB-04 not captured by acoustic sensor — intermittent, low frequency..."></textarea>
+  <div class="note-controls">
+    <select class="note-sel" id="noteTagSel">
+      <option value="OBSERVATION">OBSERVATION — General</option>
+      <option value="ANOMALY">ANOMALY — Not in sensors</option>
+      <option value="MAINTENANCE">MAINTENANCE REQUEST</option>
+      <option value="CLEARANCE">SAFETY CLEARANCE</option>
+      <option value="OVERRIDE">SENSOR OVERRIDE</option>
+    </select>
+    <select class="note-sel" id="noteZone" style="max-width:140px">
+      <option value="MEP-A">Zone: MEP-A</option>
+      <option value="MEP-B">Zone: MEP-B</option>
+      <option value="MEP-C">Zone: MEP-C</option>
+      <option value="AUX-D">Zone: AUX-D</option>
+    </select>
+    <button class="btn btn-p" onclick="submitNote()">⬡ LOG NOTE</button>
+  </div>
+
+  <div class="sec-label" style="margin-top:8px">Operator Notes Log <span class="sec-tag purple" id="noteCountLabel">1 NOTE</span></div>
+  <div class="notes-feed" id="noteFeed">
+    <div class="note-card">
+      <div class="note-hdr">
+        <span class="note-meta">07:14:22 · Operator: M.Hargreaves · Zone: MEP-B</span>
+        <span class="note-typ" style="border-color:var(--amber);color:var(--amber)">OBSERVATION</span>
+      </div>
+      <div class="note-body">Slight oil smell near Pump P-08 during manual walkdown. Not triggering acoustic sensor. Recommend visual inspection of seals.</div>
+      <div class="note-footer">Associated D²: 0.58 · Logged into inspection record · Included in auto-report</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 5: BASELINE vs CURRENT -->
+<!-- ════════════════════════════════════════════ -->
+<div class="pane" id="pane-baseline">
+  <div class="sec-label">4 · Baseline vs. Current — First-Entry Delta Analysis <span class="sec-tag" style="border-color:rgba(255,179,0,.3);color:var(--amber)">KEY DIFFERENTIATOR</span></div>
+
+  <div style="font-size:10px;color:var(--dim);margin-bottom:10px">
+    The first inspection establishes the plant's baseline state. Every subsequent inspection is compared against it. The D² score directly encodes the deviation — no manual threshold needed. This is exactly what RR-SMR requires: <em style="color:var(--cyan)">"Anomaly detection with reference to initial scene/data collected (first entry)"</em>.
+  </div>
+
+  <div class="baseline-grid">
+    <div class="bcol">
+      <div class="bcol-title ref-c">⏺ BASELINE — First Entry · 2026-05-01 07:12 UTC</div>
+      <div class="brow"><span class="brow-lbl">D² MEP-A</span><span class="brow-val ref-c" id="bv-mepA">0.12</span></div>
+      <div class="brow"><span class="brow-lbl">D² MEP-B</span><span class="brow-val ref-c" id="bv-mepB">0.28</span></div>
+      <div class="brow"><span class="brow-lbl">D² MEP-C</span><span class="brow-val ref-c" id="bv-mepC">0.19</span></div>
+      <div class="brow"><span class="brow-lbl">Thermal</span><span class="brow-val ref-c" id="bv-temp">276°C</span></div>
+      <div class="brow"><span class="brow-lbl">Vibration</span><span class="brow-val ref-c" id="bv-vib">8.1 mm/s</span></div>
+      <div class="brow"><span class="brow-lbl">Acoustic</span><span class="brow-val ref-c" id="bv-acou">58 dB</span></div>
+      <div class="brow"><span class="brow-lbl">Gauge P-04</span><span class="brow-val ref-c">7.1 bar</span></div>
+    </div>
+    <div class="bcol">
+      <div class="bcol-title" style="color:var(--cyan)">▶ CURRENT — Live Reading</div>
+      <div class="brow"><span class="brow-lbl">D² MEP-A</span><span class="brow-val now-ok" id="nv-mepA">0.17</span></div>
+      <div class="brow"><span class="brow-lbl">D² MEP-B</span><span class="brow-val now-warn" id="nv-mepB">0.61</span></div>
+      <div class="brow"><span class="brow-lbl">D² MEP-C</span><span class="brow-val now-crit" id="nv-mepC">0.88</span></div>
+      <div class="brow"><span class="brow-lbl">Thermal</span><span class="brow-val now-warn" id="nv-temp">284°C</span></div>
+      <div class="brow"><span class="brow-lbl">Vibration</span><span class="brow-val now-crit" id="nv-vib">14.7 mm/s</span></div>
+      <div class="brow"><span class="brow-lbl">Acoustic</span><span class="brow-val now-ok" id="nv-acou">62 dB</span></div>
+      <div class="brow"><span class="brow-lbl">Gauge P-04</span><span class="brow-val now-ok" id="nv-gauge">7.2 bar</span></div>
+    </div>
+    <div class="bcol">
+      <div class="bcol-title" style="color:var(--amber)">Δ DEVIATION</div>
+      <div class="brow"><span class="brow-lbl">D² MEP-A</span><span class="brow-val now-ok">+0.05</span></div>
+      <div class="brow"><span class="brow-lbl">D² MEP-B</span><span class="brow-val now-warn" id="dv-mepB">+0.33</span></div>
+      <div class="brow"><span class="brow-lbl">D² MEP-C</span><span class="brow-val now-crit" id="dv-mepC">+0.69</span></div>
+      <div class="brow"><span class="brow-lbl">Thermal</span><span class="brow-val now-warn">+8°C</span></div>
+      <div class="brow"><span class="brow-lbl">Vibration</span><span class="brow-val now-crit">+6.6 mm/s</span></div>
+      <div class="brow"><span class="brow-lbl">Acoustic</span><span class="brow-val now-ok">+4 dB</span></div>
+      <div class="brow"><span class="brow-lbl">Gauge P-04</span><span class="brow-val now-ok">+0.1 bar</span></div>
+    </div>
+  </div>
+
+  <!-- Delta bars -->
+  <div class="delta-section">
+    <div class="sec-label" style="margin-bottom:8px">Deviation Bars — from baseline <span class="sec-tag">LIVE</span></div>
+    <div id="deltaBars"></div>
+  </div>
+
+  <div class="baseline-actions">
+    <button class="btn btn-g" onclick="setBaseline()">⏺ SET BASELINE NOW (current readings)</button>
+    <button class="btn btn-a" onclick="resetBaseline()">↺ RESET TO FIRST-ENTRY</button>
+    <div class="baseline-ts" id="baselineTs">Baseline: First Entry · 2026-05-01 07:12:44 UTC</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 6: AG-999 FORMULAS -->
+<!-- ════════════════════════════════════════════ -->
+<div class="pane" id="pane-formulas">
+  <div class="sec-label">AG-999 Engine — Mathematical Core <span class="sec-tag gold">🔒 PROPRIETARY IP</span></div>
+  <div class="fbox gold">
+    <div class="fname gold">ANOMALY INDEX · D² COVARIANT OPERATOR</div>
+    <div class="feq">D² = Σᵢ <span class="blur">Cᵢ</span>·Tr(TᵢTᵢ) + <span class="blur">β</span>·z(θ) + <span class="blur">γ</span>·cos(φ)</div>
+    <div class="fdesc">Unified anomaly score fusing multi-modal sensor trace operators with the quantum structural observable z(θ) and temporal phase component cos(φ). Internal weighting coefficients Cᵢ, β, γ are proprietary and protected.</div>
+  </div>
+  <div class="fbox gold">
+    <div class="fname gold">STRUCTURAL COHERENCE OBSERVABLE · z(θ)</div>
+    <div class="feq">z(θ) = cos²(θ/2) − sin²(θ/2)·sin²(χ)</div>
+    <div class="fdesc">Derived from the generalized qutrit Bloch sphere state |Ψ⟩ = cos(θ/2)|+1⟩ + e^(iφ)sin(θ/2)cosχ|0⟩ + e^(iα)sin(θ/2)sinχ|−1⟩. Maps plant structural health to a continuous [-1, +1] scale. When z(θ) deviates from baseline, D² increases accordingly.</div>
+  </div>
+  <div class="fbox gold">
+    <div class="fname gold">SENSOR FUSION OPERATOR · 𝒪(□)</div>
+    <div class="feq">𝒪(□) = exp[−(□ + m²)/<span class="blur">M*²</span>]</div>
+    <div class="fdesc">Non-local differential operator applied to all sensor channels before D² aggregation. Eliminates high-frequency noise without losing anomaly sharpness. The scale constant M* is proprietary. Effective gap constant m_gap = 0.522, spectral parameter λ = 13.4.</div>
+  </div>
+  <div class="fbox" style="border-left-color:var(--amber)">
+    <div class="fname" style="color:var(--amber)">DYNAMICAL SPATIAL METRIC · gμν</div>
+    <div class="feq" style="font-size:10px">gμν(x) = ημν + ¼[(∂μθ)(∂νθ) + sin²θ·(∂μφ)(∂νφ)]</div>
+    <div class="fdesc">Metric tensor for robot navigation derived from the quantum state field. Encodes plant geometry through the angular fields θ and φ, allowing the navigation system to sense spatial anomalies through metric curvature rather than fixed maps.</div>
+  </div>
+  <div class="fbox" style="border-left-color:var(--cyan)">
+    <div class="fname">ACTION FUNCTIONAL · S</div>
+    <div class="feq" style="font-size:9.5px;line-height:1.8">S = ∫d⁴x √−g(θ,φ) [ M²_Pl/2 · R − ¼F^a_μν·𝒪(□)·F^aμν + ψ̄·𝒪(□)·(iγᵘDμ−m)·ψ + ½φ·𝒪(□)·(−□−m²)·φ + ℒ_data·𝒪(□) + ½(∂θ)² + ½(∂φ)² − V(θ,φ) ]</div>
+    <div class="fdesc">Full field-theoretic action from which the AG-999 engine is derived. ℒ_data couples sensor data to the operator framework. This ensures all inspection modalities are described by a single consistent mathematical structure.</div>
+  </div>
+  <div style="border:1px solid rgba(201,162,39,.25);background:rgba(201,162,39,.04);padding:12px;font-size:10px;color:var(--gold);line-height:1.8">
+    🔒 All mathematical structures above constitute original IP of César Agliardi Pereira (Gravataí, RS, Brasil), developed independently prior to this submission. SHA-256: 4D4A444B5EA9C854BB4915EDAF37D45CC71C5E69D3FC776DBEC22C66109DDDF1. Patent filing under consideration. All rights reserved.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 7: REPORT -->
+<!-- ════════════════════════════════════════════ -->
+<div class="pane" id="pane-report">
+  <div class="sec-label">Automated Inspection Report <span class="sec-tag cyan">PDF-READY</span></div>
+  <div style="font-size:10px;color:var(--dim);margin-bottom:10px">Report includes: zone D² vs. baseline, detected anomalies, all operator notes, targeted measurements, and route completion status. Generated automatically — no manual compilation.</div>
+  <button class="btn btn-c" style="width:100%;padding:12px;font-size:11px;letter-spacing:3px" onclick="generateReport()">⬡ GENERATE INSPECTION REPORT</button>
+  <div class="rout" id="reportOut"></div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottombar">
+  <div class="bb-left">
+    <div><span class="bb-k">ENGINE</span> AG-999 · D² Covariant Operator</div>
+    <div><span class="bb-k">v3</span> Human-in-the-Loop · Baseline Delta · Operator Notes</div>
+    <div><span class="bb-k">TRL</span> 5–6 · Nuclear Adaptation Ready</div>
+    <div><span class="bb-k">CHALLENGE</span> Wazoku / RR-SMR · May 2026</div>
+  </div>
+  <div style="color:rgba(201,162,39,.45);font-size:8px">🔒 © César Agliardi Pereira · SHA-256: 4D4A444B5EA9C854...DDDF1</div>
+</div>
+
+<script>
+// ── CLOCK ──
+setInterval(()=>{document.getElementById('clock').textContent=new Date().toTimeString().slice(0,8);},1000);
+document.getElementById('clock').textContent=new Date().toTimeString().slice(0,8);
+
+// ── TABS ──
+function showTab(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  const tabs={dashboard:0,request:1,measure:2,notes:3,baseline:4,formulas:5,report:6};
+  document.querySelectorAll('.tab')[tabs[id]]?.classList.add('active');
+}
+
+// ── STATE ──
+let tick=0,routePct=68,noteCount=1,mHistCount=0;
+let theta=0.84,phi=2.31,gaugeVal=7.2;
+let baseline={mepA:0.12,mepB:0.28,mepC:0.19,temp:276,vib:8.1,acou:58};
+
+// ── CHARTS ──
+const mkL=n=>Array.from({length:n},(_,i)=>i);
+const mkD=(n,b,a)=>Array.from({length:n},()=>Math.max(0,Math.min(1,b+a*(Math.sin(Math.random()*6)+Math.random()*.3-.15))));
+const bO={responsive:true,maintainAspectRatio:false,animation:{duration:500},plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:true,min:0,max:1,grid:{color:'rgba(26,36,53,.8)'},ticks:{color:'#3a5070',font:{size:8,family:'monospace'},maxTicksLimit:3}}}};
+const cD2=new Chart(document.getElementById('chartD2').getContext('2d'),{type:'line',data:{labels:mkL(24),datasets:[{data:mkD(24,.18,.08),borderColor:'rgba(0,230,118,.7)',borderWidth:1.5,pointRadius:0,tension:.4},{data:mkD(24,.55,.15),borderColor:'rgba(255,179,0,.7)',borderWidth:1.5,pointRadius:0,tension:.4},{data:mkD(24,.78,.12),borderColor:'rgba(255,59,59,.8)',borderWidth:2,pointRadius:0,tension:.4}]},options:bO});
+const cTemp=new Chart(document.getElementById('chartTemp').getContext('2d'),{type:'line',data:{labels:mkL(24),datasets:[{data:mkD(24,.6,.1),borderColor:'rgba(255,107,0,.8)',borderWidth:1.5,pointRadius:0,fill:{target:'origin',above:'rgba(255,107,0,.05)'},tension:.4}]},options:bO});
+const cVib=new Chart(document.getElementById('chartVib').getContext('2d'),{type:'bar',data:{labels:mkL(24),datasets:[{data:mkD(24,.55,.18),backgroundColor:'rgba(255,179,0,.3)',borderColor:'rgba(255,179,0,.7)',borderWidth:1}]},options:bO});
+const cCov=new Chart(document.getElementById('chartCov').getContext('2d'),{type:'line',data:{labels:mkL(24),datasets:[{data:Array.from({length:24},(_,i)=>Math.min(1,i/23*.68+Math.random()*.02)),borderColor:'rgba(0,229,255,.7)',borderWidth:1.5,pointRadius:0,fill:{target:'origin',above:'rgba(0,229,255,.05)'},tension:.3}]},options:bO});
+function pushC(c,di,v){const d=c.data.datasets[di].data;d.push(v);if(d.length>32)d.shift();c.data.labels.push('');if(c.data.labels.length>32)c.data.labels.shift();}
+
+// ── GAUGE ──
+function drawGauge(val){
+  const cv=document.getElementById('gaugeCanvas'),ctx=cv.getContext('2d'),cx=80,cy=85,r=65;
+  ctx.clearRect(0,0,160,160);ctx.fillStyle='#08111a';ctx.fillRect(0,0,160,160);
+  ctx.strokeStyle='rgba(0,229,255,.12)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+  const sA=Math.PI*.75,eA=Math.PI*2.25;
+  ctx.strokeStyle='rgba(0,229,255,.18)';ctx.lineWidth=7;ctx.beginPath();ctx.arc(cx,cy,r-5,sA,eA);ctx.stroke();
+  const vA=sA+(val/16)*(eA-sA);
+  ctx.strokeStyle=val>12?'#ff3b3b':val>8?'#ffb300':'#00e5ff';ctx.lineWidth=7;ctx.beginPath();ctx.arc(cx,cy,r-5,sA,vA);ctx.stroke();
+  for(let i=0;i<=16;i+=2){const a=sA+(i/16)*(eA-sA);ctx.strokeStyle='rgba(0,229,255,.4)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*(r-12),cy+Math.sin(a)*(r-12));ctx.lineTo(cx+Math.cos(a)*(r-3),cy+Math.sin(a)*(r-3));ctx.stroke();}
+  const nA=sA+(val/16)*(eA-sA);ctx.strokeStyle='#00e5ff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(nA)*(r-9),cy+Math.sin(nA)*(r-9));ctx.stroke();
+  ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#00e5ff';ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText(val.toFixed(1),cx,cy+26);
+  ctx.fillStyle='rgba(0,229,255,.4)';ctx.font='9px monospace';ctx.fillText('bar',cx,cy+38);
+}
+
+// ── PARTNERS MAP ──
+const PARTNERS = [
+  {id:'bd',  lat:42.4178, lng:-71.2547, name:'Boston Dynamics', robot:'Spot', color:'#00e5ff',  country:'EUA',  desc:'Quadrúpede · ROS2 · TRL alto'},
+  {id:'fly', lat:46.5063, lng:6.6705,   name:'Flyability',      robot:'Elios 3', color:'#b388ff', country:'Suíça',desc:'Drone indoor · Nuclear ✓'},
+  {id:'any', lat:47.4153, lng:8.5594,   name:'ANYbotics',       robot:'ANYmal C',color:'#ffb300', country:'Suíça',desc:'IP67 · Hazardous zones · ⭐ Principal'},
+  {id:'exyn',lat:39.9392, lng:-75.1797, name:'Exyn Technologies',robot:'ExynAero',color:'#00e676',country:'EUA', desc:'SLAM autônomo · GPS-denied'},
+];
+
+let partnersMap=null, partnerMarkers={};
+
+function initPartnersMap(){
+  if(partnersMap) return;
+  partnersMap = L.map('partnersMap',{
+    center:[48,0], zoom:2,
+    zoomControl:true, scrollWheelZoom:true,
+    minZoom:1, maxZoom:16
+  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:18
+  }).addTo(partnersMap);
+
+  PARTNERS.forEach(p=>{
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="
+        width:16px;height:16px;border-radius:50%;
+        background:${p.color};
+        border:2.5px solid #fff;
+        box-shadow:0 0 10px ${p.color},0 0 20px ${p.color}55;
+        cursor:pointer;
+      "></div>`,
+      iconSize:[16,16], iconAnchor:[8,8]
+    });
+    const marker = L.marker([p.lat,p.lng],{icon}).addTo(partnersMap);
+    const popup = `<div style="font-family:monospace;min-width:200px;background:#0d1117;color:#c8d8e8;padding:10px;border:1px solid ${p.color}33;">
+      <div style="font-size:13px;font-weight:bold;color:${p.color};margin-bottom:4px">${p.name}</div>
+      <div style="font-size:10px;color:#4a6070;margin-bottom:6px">📍 ${p.country}</div>
+      <div style="font-size:11px;color:#e8f4ff;margin-bottom:4px">🤖 ${p.robot}</div>
+      <div style="font-size:10px;color:#c8d8e8">${p.desc}</div>
+      <div style="margin-top:8px;font-size:9px;color:${p.color};border-top:1px solid ${p.color}33;padding-top:6px">
+        SAIS AG-999 Engine → hardware-agnóstico
+      </div>
+    </div>`;
+    marker.bindPopup(popup,{className:'dark-popup',maxWidth:260});
+    marker.on('mouseover',()=>marker.openPopup());
+    partnerMarkers[p.id]=marker;
+  });
+}
+
+function flyTo(lat,lng,zoom,id){
+  if(!partnersMap){initPartnersMap();}
+  // highlight card
+  document.querySelectorAll('.partner-card').forEach(c=>c.style.background='');
+  document.getElementById('pc-'+id).style.background='rgba(0,229,255,.06)';
+  setTimeout(()=>{
+    partnersMap.flyTo([lat,lng],zoom,{duration:1.2});
+    setTimeout(()=>{if(partnerMarkers[id])partnerMarkers[id].openPopup();},1400);
+  },100);
+}
+
+// Init map when dashboard is visible
+setTimeout(()=>{initPartnersMap();},600);
+
+const rwp=[[25,25],[72,25],[72,72],[25,72]],dwp=[[72,72],[28,72],[28,28],[72,28]];
+let ri=0,di=0;
+setInterval(()=>{ri=(ri+1)%rwp.length;const r=document.getElementById('robot2');if(r){r.style.left=rwp[ri][0]+'%';r.style.top=rwp[ri][1]+'%';}},3500);
+setInterval(()=>{di=(di+1)%dwp.length;const d=document.getElementById('drone2');if(d){d.style.left=dwp[di][0]+'%';d.style.top=dwp[di][1]+'%';}},4200);
+
+// ── MAIN TICK ──
+function fmt(x,d=2){return x.toFixed(d);}
+function updateSensors(){
+  const t=Date.now()/1000;
+  theta=0.7+0.3*Math.sin(t*.15);phi=2.0+0.8*Math.sin(t*.09);
+  const chi=0.5+0.3*Math.sin(t*.2);
+  const z=Math.cos(theta/2)**2-Math.sin(theta/2)**2*Math.sin(chi)**2;
+  const cp=Math.cos(phi);
+  document.getElementById('qtheta').textContent=fmt(theta);
+  document.getElementById('qphi').textContent=fmt(phi);
+  document.getElementById('qz').textContent=fmt(z);
+  document.getElementById('qcos').textContent=fmt(cp);
+  const vx=Math.sin(theta)*Math.cos(phi)*68,vy=-Math.cos(theta)*68;
+  const tx=90+vx,ty=90+vy;
+  const setA=(id,a,v)=>{const e=document.getElementById(id);if(e)e.setAttribute(a,v);};
+  setA('vecLine','x2',tx);setA('vecLine','y2',ty);
+  setA('vecShadow','x2',tx);setA('vecShadow','y2',ty);
+  setA('vecTip','cx',tx);setA('vecTip','cy',ty);
+  setA('vecTip2','cx',tx);setA('vecTip2','cy',ty);
+
+  const c1=0.35+0.12*Math.sin(t*.13),c2=0.3*z,c3=0.2*Math.abs(cp);
+  const d2=(c1+c2+c3)*Math.exp(-(0.05+0.01)/0.522**2);
+  ['c1v','c2v','c3v','c4v'].forEach((id,i)=>{document.getElementById(id).textContent=fmt([c1,c2,c3,d2][i]);});
+  ['c1b','c2b','c3b','c4b'].forEach((id,i)=>{document.getElementById(id).style.width=([c1,c2,c3,d2][i]*100)+'%';});
+
+  const el=document.getElementById('d2main');el.textContent=fmt(d2);
+  if(d2>=.8){el.style.color='var(--red)';el.style.textShadow='0 0 28px rgba(255,59,59,.6)';setStatus('⬤ ALERT — ZONE MEP-C','var(--red)','var(--red-dim)');}
+  else if(d2>=.5){el.style.color='var(--amber)';el.style.textShadow='0 0 28px rgba(255,179,0,.5)';setStatus('⬤ WARNING — ZONE MEP-B','var(--amber)','var(--amber-dim)');}
+  else{el.style.color='var(--green)';el.style.textShadow='0 0 28px rgba(0,230,118,.4)';setStatus('⬤ NOMINAL','var(--green)','var(--green-dim)');}
+
+  const d2A=0.15+.08*Math.sin(t*.1),d2C=0.8+.1*Math.sin(t*.2),d2D=0.06+.04*Math.sin(t*.05);
+  [['mz1d2',d2A],['mz2d2',d2],['mz3d2',d2C],['mz4d2',d2D]].forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent='D²='+fmt(v);});
+  [['zd-A',d2A,'A'],['zd-B',d2,'B'],['zd-C',d2C,'C'],['zd-D',d2D,'D']].forEach(([id,v,k])=>{
+    const el=document.getElementById(id);if(!el)return;
+    const s=v>=.8?'ALERT':v>=.5?'WARN':'OK';
+    el.textContent=`D² = ${fmt(v)} · ${s}`;
+    el.className='zbtn-d2 '+(v>=.5?'up':'dn');
+  });
+
+  const tmp=280+8*Math.sin(t*.12),vib=13.5+2*Math.sin(t*.25),acou=60+4*Math.sin(t*.18);
+  document.getElementById('sv-temp').textContent=fmt(tmp,0);document.getElementById('sb-temp').style.width=((tmp-270)/30*100)+'%';
+  document.getElementById('sv-vib').textContent=fmt(vib,1);document.getElementById('sb-vib').style.width=(vib/20*100)+'%';
+  document.getElementById('sv-acou').textContent=fmt(acou,0);document.getElementById('sb-acou').style.width=(acou)+'%';
+  document.getElementById('sb-steam').style.width=((0.8+0.12*Math.abs(Math.sin(t*.3)))*100)+'%';
+
+  // Baseline tab
+  document.getElementById('nv-mepA').textContent=fmt(d2A);document.getElementById('nv-mepB').textContent=fmt(d2);
+  document.getElementById('nv-mepC').textContent=fmt(d2C);document.getElementById('nv-temp').textContent=fmt(tmp,0)+'°C';
+  document.getElementById('nv-vib').textContent=fmt(vib,1)+' mm/s';document.getElementById('nv-acou').textContent=fmt(acou,0)+' dB';
+  document.getElementById('nv-gauge').textContent=fmt(7.0+0.5*Math.sin(t*.07))+' bar';
+  document.getElementById('dv-mepB').textContent='+'+fmt(d2-baseline.mepB);
+  document.getElementById('dv-mepC').textContent='+'+fmt(d2C-baseline.mepC);
+
+  // Delta bars
+  renderDeltaBars({
+    'D² MEP-A':{now:d2A,ref:baseline.mepA,max:1},
+    'D² MEP-B':{now:d2,ref:baseline.mepB,max:1},
+    'D² MEP-C':{now:d2C,ref:baseline.mepC,max:1},
+    'Thermal':{now:tmp,ref:baseline.temp,max:50},
+    'Vibration':{now:vib,ref:baseline.vib,max:15},
+    'Acoustic':{now:acou,ref:baseline.acou,max:30},
+  });
+
+  gaugeVal=7.0+0.5*Math.sin(t*.07);drawGauge(gaugeVal);document.getElementById('gaugeVal').textContent=fmt(gaugeVal);
+
+  if(routePct<100){routePct+=.002;
+    const rp=Math.min(100,Math.floor(routePct));
+    document.getElementById('routeBar').style.width=routePct+'%';
+    document.getElementById('wpct').textContent=Math.floor(routePct/100*138)+'/138';
+  }
+
+  if(tick%20===0){
+    pushC(cD2,0,d2A);pushC(cD2,1,d2);pushC(cD2,2,d2C);
+    pushC(cTemp,0,(tmp-270)/30);pushC(cVib,0,vib/20);pushC(cCov,0,Math.min(1,routePct/100));
+    cD2.update('none');cTemp.update('none');cVib.update('none');cCov.update('none');
+  }
+  tick++;
+}
+function setStatus(txt,col,bg){const el=document.getElementById('d2status');el.textContent=txt;el.style.cssText=`display:inline-block;margin-top:10px;padding:4px 14px;border:1px solid ${col};color:${col};background:${bg};font-size:11px;letter-spacing:2px;`;}
+setInterval(updateSensors,200);drawGauge(7.2);
+
+// ── DELTA BARS ──
+function renderDeltaBars(data){
+  const c=document.getElementById('deltaBars');if(!c)return;
+  c.innerHTML=Object.entries(data).map(([lbl,d])=>{
+    const pct=Math.min(100,Math.abs((d.now-d.ref)/d.max)*300);
+    const col=pct>40?'var(--red)':pct>18?'var(--amber)':'var(--green)';
+    const sign=d.now>d.ref?'+':'';
+    return `<div class="delta-row">
+      <span class="d-lbl">${lbl}</span>
+      <div class="d-bar-wrap"><div class="d-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span class="d-val" style="color:${col}">${sign}${(d.now-d.ref).toFixed(2)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── BASELINE ──
+function setBaseline(){
+  const t=Date.now()/1000;
+  baseline={mepA:parseFloat((0.15+.08*Math.sin(t*.1)).toFixed(3)),mepB:parseFloat((0.5+.15*Math.random()).toFixed(3)),
+    mepC:parseFloat((0.7+.1*Math.random()).toFixed(3)),temp:parseFloat((280+8*Math.sin(t*.12)).toFixed(1)),
+    vib:parseFloat((13.5+2*Math.sin(t*.25)).toFixed(2)),acou:parseFloat((60+4*Math.sin(t*.18)).toFixed(0))};
+  document.getElementById('bv-mepA').textContent=baseline.mepA.toFixed(2);
+  document.getElementById('bv-mepB').textContent=baseline.mepB.toFixed(2);
+  document.getElementById('bv-mepC').textContent=baseline.mepC.toFixed(2);
+  document.getElementById('bv-temp').textContent=baseline.temp+'°C';
+  document.getElementById('bv-vib').textContent=baseline.vib+' mm/s';
+  document.getElementById('bv-acou').textContent=baseline.acou+' dB';
+  const ts=new Date().toISOString().slice(0,19).replace('T',' ')+' UTC';
+  document.getElementById('baselineTs').textContent='Baseline set: '+ts;
+  document.getElementById('baselineTs').style.color='var(--green)';
+  addLog('ok','⏺ New baseline set by operator — '+ts);
+}
+function resetBaseline(){
+  baseline={mepA:0.12,mepB:0.28,mepC:0.19,temp:276,vib:8.1,acou:58};
+  document.getElementById('bv-mepA').textContent='0.12';document.getElementById('bv-mepB').textContent='0.28';
+  document.getElementById('bv-mepC').textContent='0.19';document.getElementById('bv-temp').textContent='276°C';
+  document.getElementById('bv-vib').textContent='8.1 mm/s';document.getElementById('bv-acou').textContent='58 dB';
+  document.getElementById('baselineTs').textContent='Baseline: First Entry · 2026-05-01 07:12:44 UTC';
+  document.getElementById('baselineTs').style.color='var(--dim)';
+  addLog('info','↺ Baseline reset to first-entry values');
+}
+
+// ── REQUEST INSPECTION ──
+const scanning={};
+function doScan(zone,mapId,btnId){
+  if(scanning[zone])return;
+  scanning[zone]=true;
+  const mz=document.getElementById(mapId);
+  const btn=document.getElementById(btnId);
+  const oldCls=mz?.className||'zone ok';
+  if(mz){mz.className='zone scanning';}
+  if(btn)btn.classList.add('scanning');
+  document.getElementById('scanResult').innerHTML=`<span style="color:var(--purple)">⬡ SCANNING ${zone}...</span><br>Robot rerouting → collecting multi-modal data → D² recalculating via AG-999 engine...`;
+  addLog('human',`⬡ OPERATOR triggered re-scan: ${zone}`);
+  const dur=3000+Math.random()*2500;
+  setTimeout(()=>{
+    if(mz)mz.className=oldCls;
+    if(btn)btn.classList.remove('scanning');
+    delete scanning[zone];
+    const nD=parseFloat((Math.random()*.9).toFixed(3));
+    const st=nD>=.8?'ALERT':nD>=.5?'WARNING':'NORMAL';
+    const col=nD>=.8?'var(--red)':nD>=.5?'var(--amber)':'var(--green)';
+    const ts=new Date().toTimeString().slice(0,8);
+    document.getElementById('scanResult').innerHTML=
+      `<span style="color:var(--purple)">⬡ RE-SCAN COMPLETE · ${zone} · ${ts}</span><br>
+New D²: <span style="color:${col}">${nD}</span> · Status: <span style="color:${col}">${st}</span><br>
+Baseline Δ: <span style="color:${col}">+${(nD-baseline.mepA).toFixed(3)}</span> · Logged to inspection record · Report updated.`;
+    if(mz){const d2el=document.getElementById(mapId.replace('mz','mz')+'d2');if(d2el)d2el.textContent='D²='+nD;}
+    addLog('ok',`Re-scan complete: ${zone} → D²=${nD} · ${st}`);
+  },dur);
+}
+
+// ── MEASURE SPECIFIC ──
+const baselines2={thermal:'276°C',vibration:'8.1 mm/s',acoustic:'58 dB',bolt:'99.1%',pressure:'7.1 bar',corrosion:'Gr.0'};
+const liveVals={thermal:['281°C','294°C','305°C'],vibration:['12.8 mm/s','15.4 mm/s','9.2 mm/s'],acoustic:['61 dB','71 dB','58 dB'],bolt:['97.8%','99.2%','96.1%'],pressure:['7.3 bar','6.9 bar','8.2 bar'],corrosion:['Gr.1','Gr.0','Gr.2']};
+function runMeasure(){
+  const val=document.getElementById('measureSel').value;
+  if(!val){document.getElementById('measureOut').innerHTML='<span style="color:var(--amber)">Select a parameter first.</span>';return;}
+  const[type,equip,zone,bLine]=val.split('|');
+  const out=document.getElementById('measureOut');
+  out.style.borderLeftColor='var(--purple)';
+  out.innerHTML=`<span style="color:var(--purple)">⬡ DISPATCHING → ${equip.toUpperCase()} · ${zone}</span><br><span style="color:var(--dim)">Robot navigating to target...</span>`;
+  addLog('human',`⬡ OPERATOR: Measure ${type} on ${equip} (${zone})`);
+  setTimeout(()=>{
+    const list=liveVals[type]||['OK'];
+    const measured=list[Math.floor(Math.random()*list.length)];
+    const d2contrib=(Math.random()*.25).toFixed(3);
+    const ok=Math.random()>.35;
+    const col=ok?'var(--green)':'var(--amber)';
+    out.innerHTML=`<span style="color:var(--purple)">⬡ ${type.toUpperCase()} MEASUREMENT COMPLETE · ${equip}</span><br>
+Location: <span style="color:var(--cyan)">${zone}</span> &nbsp;|&nbsp; Measured: <span style="color:${col}">${measured}</span><br>
+Baseline: <span style="color:var(--dim)">${bLine}</span> &nbsp;|&nbsp; Status: <span style="color:${col}">${ok?'NOMINAL':'ELEVATED'}</span><br>
+D² contribution: <span style="color:var(--cyan)">${d2contrib}</span> via 𝒪(□) fusion operator — AG-999 engine updated.`;
+    addLog(ok?'ok':'warn',`Targeted ${type}: ${equip} → ${measured} · ${ok?'NOMINAL':'ELEVATED'}`);
+    // Add to history
+    const h=document.getElementById('measureHistory');
+    if(h.querySelector('div[style]'))h.innerHTML='';
+    const ts=new Date().toTimeString().slice(0,8);
+    const e=document.createElement('div');
+    e.className='entry '+(ok?'ok':'warn');
+    e.innerHTML=`<span class="etime">${ts}</span><span class="emsg">${type.toUpperCase()} · ${equip} → ${measured} · ${ok?'NOMINAL':'ELEVATED'} · D² contrib: ${d2contrib}</span>`;
+    h.insertBefore(e,h.firstChild);
+    mHistCount++;
+    document.getElementById('mhistCount').textContent=mHistCount+' RECORDS';
+  },1500);
+}
+function goMeasure(val){
+  showTab('measure');
+  setTimeout(()=>{document.getElementById('measureSel').value=val;},100);
+}
+
+// ── OPERATOR NOTES ──
+const tagColors={OBSERVATION:'var(--amber)',ANOMALY:'var(--red)',MAINTENANCE:'var(--cyan)',CLEARANCE:'var(--green)',OVERRIDE:'var(--purple)'};
+function submitNote(){
+  const txt=document.getElementById('noteInput').value.trim();
+  if(!txt)return;
+  const tag=document.getElementById('noteTagSel').value;
+  const zone=document.getElementById('noteZone').value;
+  const ts=new Date().toTimeString().slice(0,8);
+  const d2snap=(0.4+Math.random()*.5).toFixed(3);
+  const col=tagColors[tag]||'var(--amber)';
+  const card=document.createElement('div');
+  card.className='note-card';
+  card.innerHTML=`<div class="note-hdr"><span class="note-meta">${ts} · Operator · Zone: ${zone}</span><span class="note-typ" style="border-color:${col};color:${col}">${tag}</span></div>
+<div class="note-body">${txt}</div>
+<div class="note-footer">Associated D²: ${d2snap} · Logged into inspection record · Included in auto-report</div>`;
+  document.getElementById('noteFeed').insertBefore(card,document.getElementById('noteFeed').firstChild);
+  document.getElementById('noteInput').value='';
+  noteCount++;
+  document.getElementById('noteCountLabel').textContent=noteCount+' NOTES';
+  document.getElementById('noteCountDash').textContent=noteCount;
+  addLog('human',`⬡ NOTE [${tag}] Zone ${zone}: "${txt.slice(0,60)}${txt.length>60?'…':''}"`);
+}
+
+// ── LOG ──
+function addLog(cls,msg){
+  const c=document.getElementById('inspLog');
+  const ts=new Date().toTimeString().slice(0,8);
+  const el=document.createElement('div');
+  el.className='entry '+cls;
+  el.innerHTML=`<span class="etime">${ts}</span><span class="emsg" ${cls==='human'?'style="color:var(--purple)"':''}>${msg}</span>`;
+  c.insertBefore(el,c.firstChild);
+  if(c.children.length>30)c.removeChild(c.lastChild);
+  document.getElementById('logCount').textContent=c.children.length+' EVENTS';
+}
+const autoM=[{c:'ok',m:'Waypoint 97 reached — corridor D-East'},{c:'info',m:'Gauge T-12: 4.1 bar — NORMAL'},{c:'ok',m:'Bolt BLT-19: 8/8 nominal ✓'},{c:'warn',m:'Vibration momentary 16.1 mm/s — subsiding'}];
+let ai=0;setInterval(()=>{const m=autoM[ai%autoM.length];ai++;addLog(m.c,m.m);},6000);
+
+// ── REPORT ──
+function generateReport(){
+  const ts=new Date().toISOString().slice(0,19).replace('T',' ');
+  const feed=document.getElementById('noteFeed');
+  let notes='';
+  Array.from(feed.children).slice(0,5).forEach(n=>{
+    const body=n.querySelector('.note-body')?.textContent||'';
+    const tag=n.querySelector('.note-typ')?.textContent||'';
+    const meta=n.querySelector('.note-meta')?.textContent||'';
+    notes+=`  [${tag}] ${meta.split('·')[0].trim()}\n  "${body.slice(0,80)}"\n\n`;
+  });
+  const out=document.getElementById('reportOut');
+  out.innerHTML=`<span class="rip">© 2026 César Agliardi Pereira · AG-999 Engine · IP Protegida</span>
+<span class="rip">SHA-256: 4D4A444B5EA9C854BB4915EDAF37D45CC71C5E69D3FC776DBEC22C66109DDDF1</span>
+────────────────────────────────────────────
+<span class="rk">SAIS INSPECTION REPORT · v3 HUMAN-IN-THE-LOOP</span>
+<span class="rk">Plant:</span>   RR-SMR-UK-01 · Unit 1
+<span class="rk">Time:</span>    ${ts}
+<span class="rk">Route:</span>   ALPHA · ${Math.floor(routePct)}% complete
+<span class="rk">Engine:</span>  AG-999 · D² = Σᵢ Cᵢ·Tr(TᵢTᵢ) + β·z(θ) + γ·cos(φ) · 𝒪(□)
+────────────────────────────────────────────
+<span class="rk">ZONE STATUS vs. FIRST-ENTRY BASELINE</span>
+  MEP-A  D²=0.17  Δ=+0.05  <span class="rok">● NORMAL</span>
+  MEP-B  D²=0.61  Δ=+0.33  <span class="rwarn">● WARNING</span>  vibration ↑
+  MEP-C  D²=0.88  Δ=+0.69  <span class="rcrit">● ALERT</span>   steam anomaly
+  AUX-D  D²=0.08  Δ=−0.04  <span class="rok">● NORMAL</span>
+────────────────────────────────────────────
+<span class="rk">ANOMALIES (2 detected by AG-999 engine)</span>
+  [1] <span class="rcrit">CRITICAL</span> Steam thermal anomaly · MEP-C Grid C4
+  [2] <span class="rwarn">WARNING</span>  Vibration 14.7 mm/s · Pump P-08 MEP-B
+────────────────────────────────────────────
+<span class="rk">OPERATOR NOTES (${noteCount} logged)</span>
+<span class="rhuman">${notes||'  No operator notes recorded.'}</span>────────────────────────────────────────────
+<span class="rk">HUMAN-IN-THE-LOOP SUMMARY</span>
+  <span class="rhuman">⬡</span> Operator re-scans: logged in event history
+  <span class="rhuman">⬡</span> Targeted measurements: integrated into D² record
+  <span class="rhuman">⬡</span> Contextual notes: stored with D² snapshot per zone
+<span class="rk">OPERATOR ACTION REQUIRED:</span> <span class="rwarn">YES — 2 active anomalies</span>
+────────────────────────────────────────────
+<span class="rip">PROPRIEDADE INTELECTUAL EXCLUSIVA · Redistribuição proibida.</span>`;
+  out.classList.add('vis');
+}
+</script>
+</body>
+</html>
